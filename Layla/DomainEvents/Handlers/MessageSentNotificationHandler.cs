@@ -1,0 +1,55 @@
+﻿using Layla.DomainEvents.Domain.Dispatcher;
+using Layla.DomainEvents.Domain.Events;
+using Layla.Helper.Localization;
+using Layla.Resources.Localization;
+using Layla.Services.DataCRUD.Interfaces;
+using Layla.Services.FirebaseServices.Interfaces;
+using Microsoft.Extensions.Localization;
+
+namespace Layla.DomainEvents.Handlers
+{
+    public class MessageSentNotificationHandler : IEventHandler<MessageSentDomainEvent>
+    {
+        private readonly INotificationService _firebase;
+        private readonly IStringLocalizer<Notifications> _localizer;
+        private readonly IUserService _userService;
+        private readonly IApartmentService _apartmentService;
+        public MessageSentNotificationHandler(INotificationService firebase, IStringLocalizer<Notifications> localizer, IUserService userService, IApartmentService apartmentService)
+        {
+            _firebase = firebase;
+            _localizer = localizer;
+            _userService = userService;
+            _apartmentService = apartmentService;
+        }
+        public async Task HandleAsync(MessageSentDomainEvent @event, CancellationToken ct = default)
+        {
+            var receiver = await _userService.GetByIdAsync(@event.ReceiverId, ct);
+            var apartment = await _apartmentService.GetByIdAsync(@event.ApartmentId, ct);
+
+            using (LocalizationHelper.UseCulture(receiver!.Lang!.ToString() ?? "en"))
+            {
+                var title = _localizer["Chat_Message_Title", apartment.Title];
+                var body = BuildNotificationBody(@event.Content).Replace("\r", " ").Replace("\n", " ");
+                var data = new Dictionary<string, string>
+                {
+                    ["Type"] = "chat_message",
+                    ["ConversationId"] = @event.ConversationId.ToString(),
+                    ["SenderId"] = @event.SenderId.ToString(),
+                };
+                await _firebase.SendToUserAsync(@event.ReceiverId, title, body, data, ct);
+            }
+                
+        }
+        private static string BuildNotificationBody(string? content)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+                return string.Empty;
+
+            const int maxLength = 100;
+
+            return content.Length <= maxLength
+                ? content
+                : content.Substring(0, maxLength) + "...";
+        }
+    }
+}

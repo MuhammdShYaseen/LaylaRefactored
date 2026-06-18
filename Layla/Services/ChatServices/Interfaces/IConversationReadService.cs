@@ -1,0 +1,8 @@
+﻿namespace Layla.Services.ChatServices.Interfaces
+{
+    public interface IConversationReadService
+    {
+        Task<bool> IsParticipantAsync(int conversationId, int userId);
+        Task<List<int>> GetUserConversationIdsAsync(int userId);
+    }
+}

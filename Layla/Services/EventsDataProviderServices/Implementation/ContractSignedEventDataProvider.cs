@@ -1,0 +1,45 @@
+﻿using Layla.DataRepository;
+using Layla.DomainEvents.Domain.Events;
+using Layla.Models.DtosModels.EventDtos;
+using Layla.Models.MainModels;
+using Layla.Services.EventsDataProviderServices.Interfaces;
+using Microsoft.EntityFrameworkCore;
+
+namespace Layla.Services.EventsDataProviderServices.Implementation
+{
+    public class ContractSignedEventDataProvider : IEventDataProvider<ContractSignedEvent, ContractSignedEventDto>
+    {
+        private readonly IRepository<Contract> _contractRepository;
+
+        public ContractSignedEventDataProvider(IRepository<Contract> contractRepository)
+        {
+            _contractRepository = contractRepository;
+        }
+        public async Task<ContractSignedEventDto> GetDataAsync(ContractSignedEvent @event, CancellationToken ct)
+        {
+            return await _contractRepository
+            .Query()
+            .AsNoTracking()
+            .Where(c => c.Guid == @event.ContractGuid)
+            .Select(c => new ContractSignedEventDto
+            {
+                ContractId = c.Guid,
+                BookingId = c.Booking!.Id,
+
+                IsOwnerSigner = @event.IsOwner,
+                IsFullySigned = @event.IsFullySigned,
+
+                ApartmentTitle = c.Booking.Apartment!.Title,
+
+                OwnerId = c.Booking.Apartment.OwnerId,
+                OwnerEmail = c.Booking.Apartment.Owner!.Email!.Value,
+                OwnerLang = c.Booking.Apartment.Owner.Lang!.Code,
+
+                RenterId = c.Booking.UserId,
+                RenterEmail = c.Booking.User!.Email!.Value,
+                RenterLang = c.Booking.User.Lang!.Code
+            })
+            .SingleAsync(ct);
+        }
+    }
+}

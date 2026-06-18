@@ -1,0 +1,64 @@
+﻿using Layla.DataAccess;
+using Layla.DataAccess.Configurations;
+using Layla.DomainEvents.Domain.Common;
+using Layla.Models.MainModels;
+using Microsoft.EntityFrameworkCore;
+
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Layla.Test.Services.MokeDbContext
+{
+    public class TestLaylaContext : LaylaContext
+    {
+        public TestLaylaContext(DbContextOptions<LaylaContext> options)
+        : base(options, new FakeEventDispatcher())
+        {
+        }
+        private static void SetSoftDeleteFilter<T>(ModelBuilder builder)
+        where T : Entity
+        {
+            builder.Entity<T>()
+                   .HasQueryFilter(e => !e.IsDeleted);
+        }
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.ApplyConfiguration(new ApartmentConfiguration());
+            
+            modelBuilder.Entity<Apartment>()
+               .OwnsOne(a => a.Location, geo =>
+               {
+                   
+               });
+            modelBuilder.ApplyConfiguration(new UserConfiguration());
+            ApplyGlobalFilters(modelBuilder);
+
+
+        }
+
+        private static void ApplyGlobalFilters(ModelBuilder modelBuilder)
+        {
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                if (typeof(Entity).IsAssignableFrom(entityType.ClrType))
+                {
+                    modelBuilder.Entity(entityType.ClrType)
+                        .HasIndex(nameof(Entity.Guid))
+                        .IsUnique();
+                }
+
+                if (typeof(Entity).IsAssignableFrom(entityType.ClrType))
+                {
+                    var method = typeof(LaylaContext)
+                        .GetMethod(nameof(SetSoftDeleteFilter),
+                            BindingFlags.NonPublic | BindingFlags.Static)!
+                        .MakeGenericMethod(entityType.ClrType);
+
+                    method.Invoke(null, new object[] { modelBuilder });
+                }
+            }
+        }
+    }
+}
