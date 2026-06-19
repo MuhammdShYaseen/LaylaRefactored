@@ -21,7 +21,7 @@ namespace Layla.Domain.ValueObjects.UserValueObject
 
             return new Language(code);
         }
-        internal static Language FromPersistence(string code)
+        public static Language FromPersistence(string code)
         {
             return new Language(code);
         }
