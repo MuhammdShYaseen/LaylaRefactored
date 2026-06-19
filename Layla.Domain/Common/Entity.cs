@@ -1,0 +1,46 @@
+﻿using Layla.Domain.Events;
+
+namespace Layla.Domain.Common
+{
+    public abstract class Entity
+    {
+        //common properties
+        public int Id { get; protected set; }
+        public Guid Guid { get; private set; } = Guid.NewGuid();
+        public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; private set; }
+        public bool IsDeleted { get; private set; } = false;
+
+        protected Entity()
+        {
+            CreatedAt = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
+        }
+        //events
+        private readonly List<IEvent> _domainEvents = new();
+        public IReadOnlyCollection<IEvent> DomainEvents => _domainEvents;
+        protected void AddDomainEvent(IEvent domainEvent)
+            => _domainEvents.Add(domainEvent);
+        public void ClearDomainEvents()
+            => _domainEvents.Clear();
+
+
+        //delete, restore methods for soft delete
+        public void Delete()
+        {
+            IsDeleted = true;
+            Touch();
+        }
+
+        public void Restore()
+        {
+            IsDeleted = false;
+            Touch();
+        }
+
+        protected void Touch()
+        {
+            UpdatedAt = DateTime.UtcNow;
+        }
+    }
+}

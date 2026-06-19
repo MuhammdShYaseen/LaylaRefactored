@@ -1,0 +1,78 @@
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
+using Layla.Domain.Common;
+using Layla.Domain.Events;
+
+namespace Layla.Domain.Entities
+{
+    public class Contract : Entity
+    {
+
+        [Required]
+        public int BookingId { get; private set; }
+
+        [ForeignKey("BookingId")]
+        public Booking? Booking { get; set; }
+
+        [Required]
+        public string ContractUrl { get; private set; } = string.Empty; // رابط ملف PDF مثلاً
+        public string SpecialTerms { get; private set; } = string.Empty;
+        public bool IsSignedByOwner { get; private set; } = false;
+        public bool IsSignedByRenter { get; private set; } = false;
+
+        public int OwnerId { get; private set; }
+        public int RenterId { get; private set; }
+
+        public static Contract Create(int bookingId, string specialTerms, int renterId, int ownerId)
+        {
+            var contract = new Contract
+            {
+                BookingId = bookingId,
+                SpecialTerms = !string.IsNullOrEmpty(specialTerms.Trim()) ? specialTerms : "",
+                IsSignedByOwner = false,
+                IsSignedByRenter = false,
+                OwnerId = ownerId,
+                RenterId = renterId
+            };
+
+            contract.AddDomainEvent(new ContractCreatedEvent(contract.Guid));
+            return contract;
+        }
+        public void SignByOwner()
+        {
+            if (IsSignedByOwner)
+                throw new InvalidOperationException("Contract already signed by owner.");
+
+            IsSignedByOwner = true;
+
+            Touch();
+
+            AddDomainEvent(new ContractSignedEvent(this.Guid,  true,  IsSignedByRenter));
+        }
+
+        public void SignByRenter()
+        {
+            if (IsSignedByRenter)
+                throw new InvalidOperationException("Contract already signed by renter.");
+
+            IsSignedByRenter = true;
+
+            Touch();
+
+            AddDomainEvent(new ContractSignedEvent(this.Guid, false, IsSignedByOwner));
+        }
+
+        public void AddPdfUrl(string url)
+        {
+            ContractUrl = url;
+            Touch();
+        }
+
+        public void Update(string specialTerms, string contractUrl)
+        {
+            SpecialTerms = specialTerms;
+            ContractUrl = contractUrl;
+            Touch();
+        }
+    }
+}

@@ -1,0 +1,38 @@
+﻿using Layla.Domain.Common;
+
+namespace Layla.Domain.Entities
+{
+    public class Conversation : Entity
+    {
+        public int ApartmentId { get; private set; }
+        public Apartment Apartment { get; set; } = null!;
+        public int OwnerId { get; private set; }
+        public int UserId { get; private set; }
+        public bool IsClosedByOwner { get; private set; }
+        public ICollection<Message>? Messages { get; set; }
+        public User User { get; set; } = null!;
+
+        public static Conversation Create(int apartmentId, int ownerId, int userId)
+        {
+            return new Conversation
+            {
+                ApartmentId = apartmentId,
+                OwnerId = ownerId,
+                UserId = userId,
+                IsClosedByOwner = false
+            };
+        }
+
+        public void CloseConversation()
+        {
+            IsClosedByOwner = true;
+            Touch();
+        }
+
+        public void OpenConversation()
+        {
+            IsClosedByOwner = false;
+            Touch();
+        }
+    }
+}
