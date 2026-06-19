@@ -1,6 +1,6 @@
 ﻿namespace Layla.Infrastructure
 {
-    public class Class1
+    public class InfrastructureExtensions
     {
 
     }
