@@ -10,4 +10,8 @@
     <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.9" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Layla.Application\Layla.Application.csproj" />
+  </ItemGroup>
+
 </Project>
