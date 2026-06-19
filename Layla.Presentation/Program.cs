@@ -1,4 +1,5 @@
-
+using Layla.Infrastructure;
+using Layla.Application;
 namespace Layla.Presentation
 {
     public class Program
@@ -8,7 +9,11 @@ namespace Layla.Presentation
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
+            //builder.Host.ConfigureSerilog();
+            builder.Services
+                .AddInfrastructure(builder.Configuration)
+                .AddApplication()
+                .AddApiServices();
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();

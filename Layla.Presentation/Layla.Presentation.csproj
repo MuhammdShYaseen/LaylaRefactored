@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Layla.Application\Layla.Application.csproj" />
+    <ProjectReference Include="..\Layla.Infrastructure\Layla.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

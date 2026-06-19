@@ -6,7 +6,7 @@ using System.Reflection;
 
 namespace Layla.Infrastructure.DataAccess.DbContext
 {
-    public class LaylaContext : DbContext
+    public class LaylaContext : Microsoft.EntityFrameworkCore.DbContext
     {
         private readonly IEventDispatcher _dispatcher;
         public LaylaContext(DbContextOptions<LaylaContext> options, IEventDispatcher dispatcher) : base(options) 

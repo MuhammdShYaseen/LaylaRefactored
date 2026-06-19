@@ -3,148 +3,155 @@ using Layla.Domain.ValueObjects.ApartmentValueObject;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NetTopologySuite;
-using NetTopologySuite.Geometries;
 
 namespace Layla.Infrastructure.DataAccess.Configurations;
 
-public class ApartmentConfiguration : IEntityTypeConfiguration<Apartment>
+public sealed class ApartmentConfiguration : IEntityTypeConfiguration<Apartment>
 {
     public void Configure(EntityTypeBuilder<Apartment> builder)
     {
+        builder.ToTable("Apartments");
 
-        // ── Base Entity ───────────────────────────────────────────────────────
-        builder.HasKey(a => a.Id);
-        builder.Property(a => a.Guid).IsRequired();
-        builder.Property(a => a.CreatedAt).IsRequired();
-        builder.Property(a => a.UpdatedAt);
-        builder.Property(a => a.IsDeleted).HasDefaultValue(false);
+        builder.HasKey(x => x.Id);
 
-        // ── Scalar properties ─────────────────────────────────────────────────
-        builder.Property(a => a.Title).IsRequired().HasMaxLength(200);
-        builder.Property(a => a.Description).HasMaxLength(1000);
-        builder.Property(a => a.Orientation).HasMaxLength(100);
-        builder.Property(a => a.Area).IsRequired();
-        builder.Property(a => a.FloorNumber);
-        builder.Property(a => a.NumberOfBedRooms);
-        builder.Property(a => a.NumberOfLivingRooms);
-        builder.Property(a => a.NumberOfReceptionRooms);
-        builder.Property(a => a.NumberOfBathrooms);
-        builder.Property(a => a.NumberOfBalconies);
-        builder.Property(a => a.HasElevator);
-        builder.Property(a => a.HasParking);
-        builder.Property(a => a.HasPool);
-        builder.Property(a => a.IsAvailable).HasDefaultValue(true);
-        builder.Property(a => a.IsChatEnabled).HasDefaultValue(true);
-        builder.Property(a => a.OwnerId);
-        builder.Property(a => a.CityId);
+        builder.Property(x => x.Guid)
+            .IsRequired();
 
-        // ── Enums as strings ──────────────────────────────────────────────────
-        builder.Property(a => a.Type).HasConversion<string>().HasMaxLength(50);
-        builder.Property(a => a.View).HasConversion<string>().HasMaxLength(50);
-        builder.Property(a => a.Finishing).HasConversion<string>().HasMaxLength(50);
+        builder.Property(x => x.CreatedAt)
+            .IsRequired();
 
-        // ── Money ─────────────────────────────────────────────────────────────
-        builder.OwnsOne<Money>(
-            navigationName: "PricePerHour",
-            buildAction: money =>
+        builder.Property(x => x.IsDeleted)
+            .HasDefaultValue(false);
+
+        builder.HasQueryFilter(x => !x.IsDeleted);
+
+        // Basic fields
+
+        builder.Property(x => x.Title)
+            .IsRequired()
+            .HasMaxLength(200);
+
+        builder.Property(x => x.Description)
+            .HasMaxLength(1000);
+
+        builder.Property(x => x.Area)
+            .IsRequired();
+
+        builder.Property(x => x.Orientation)
+            .HasMaxLength(100);
+
+        builder.Property(x => x.IsAvailable)
+            .HasDefaultValue(true);
+
+        builder.Property(x => x.IsChatEnabled)
+            .HasDefaultValue(true);
+
+        // Enums
+
+        builder.Property(x => x.Type)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        builder.Property(x => x.View)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        builder.Property(x => x.Finishing)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        // Money
+
+        builder.OwnsOne(x => x.PricePerHour, money =>
+        {
+            money.Property(x => x.Value)
+                .HasColumnName("PricePerHour")
+                .HasColumnType("decimal(18,4)")
+                .IsRequired();
+        });
+
+        builder.OwnsOne(x => x.PricePerDay, money =>
+        {
+            money.Property(x => x.Value)
+                .HasColumnName("PricePerDay")
+                .HasColumnType("decimal(18,4)")
+                .IsRequired();
+        });
+
+        // Location
+
+        builder.OwnsOne(x => x.Location, geo =>
+        {
+            geo.Property(x => x.Street)
+                .HasColumnName("Street")
+                .HasMaxLength(200)
+                .IsRequired();
+
+            geo.Property(x => x.BuildingNumber)
+                .HasColumnName("BuildingNumber")
+                .HasMaxLength(50)
+                .IsRequired();
+
+            geo.Property(x => x.ApartmentNumber)
+                .HasColumnName("ApartmentNumber")
+                .HasMaxLength(50)
+                .IsRequired();
+
+            geo.Property(x => x.City)
+                .HasColumnName("LocationCity")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            geo.Property(x => x.District)
+                .HasColumnName("District")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            geo.Property(x => x.Country)
+                .HasColumnName("Country")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            var geometryFactory =
+    NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
+
+            geo.OwnsOne(x => x.Coordinates, coordinates =>
             {
-                money.WithOwner();
-                money.Property<decimal>("Value")
-                    .HasColumnName("PricePerHour")
-                    .HasColumnType("decimal(18,4)")
+                coordinates.Property(x => x.Latitude)
+                    .HasColumnName("Latitude")
+                    .IsRequired();
+
+                coordinates.Property(x => x.Longitude)
+                    .HasColumnName("Longitude")
                     .IsRequired();
             });
+        });
 
-        builder.OwnsOne<Money>(
-            navigationName: "PricePerDay",
-            buildAction: money =>
-            {
-                money.WithOwner();
-                money.Property<decimal>("Value")
-                    .HasColumnName("PricePerDay")
-                    .HasColumnType("decimal(18,4)")
-                    .IsRequired();
-            });
+        // Relationships
 
-        // ── GeoLocation ───────────────────────────────────────────────────────
-        builder.OwnsOne<GeoLocation>(
-            navigationName: "Location",
-            buildAction: geo =>
-            {
-                geo.WithOwner();
-
-                geo.Property<string>("Street")
-                    .HasColumnName("Street")
-                    .HasMaxLength(200)
-                    .IsRequired();
-
-                geo.Property<string>("BuildingNumber")
-                    .HasColumnName("BuildingNumber")
-                    .HasMaxLength(50)
-                    .IsRequired();
-
-                geo.Property<string>("ApartmentNumber")
-                    .HasColumnName("ApartmentNumber")
-                    .HasMaxLength(50)
-                    .IsRequired();
-
-                geo.Property<string>("City")
-                    .HasColumnName("LocationCity")
-                    .HasMaxLength(100)
-                    .IsRequired();
-
-                geo.Property<string>("District")
-                    .HasColumnName("District")
-                    .HasMaxLength(100)
-                    .IsRequired();
-
-                geo.Property<string>("Country")
-                    .HasColumnName("Country")
-                    .HasMaxLength(100)
-                    .IsRequired();
-
-                // Convert Coordinates ↔ Point without touching domain
-                var geometryFactory = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
-
-                geo.Property<Point>("CoordinatesPoint")
-                    .HasColumnName("Coordinates")
-                    .HasColumnType("geography(Point,4326)")
-                    .IsRequired()
-                    .HasConversion(
-                        coords => geometryFactory.CreatePoint(
-                            new Coordinate(coords.X, coords.Y)),   // Point → Point (already a Point)
-                        point => point);                          // no-op on read
-
-                geo.Ignore(g => g.Coordinates);
-            });
-
-        // ── Soft delete filter ────────────────────────────────────────────────
-        builder.HasQueryFilter(a => !a.IsDeleted);
-
-        // ── Relationships ─────────────────────────────────────────────────────
-        builder.HasOne(a => a.Owner)
+        builder.HasOne(x => x.Owner)
             .WithMany()
-            .HasForeignKey(a => a.OwnerId)
+            .HasForeignKey(x => x.OwnerId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(a => a.City)
-            .WithMany()
-            .HasForeignKey(a => a.CityId)
+        builder.HasOne(x => x.City)
+            .WithMany(x => x.Apartments)
+            .HasForeignKey(x => x.CityId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasMany(a => a.Bookings)
+        builder.HasMany(x => x.Bookings)
             .WithOne()
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasMany(a => a.Reviews)
+        builder.HasMany(x => x.Reviews)
             .WithOne()
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasMany(a => a.MediaFiles)
+        builder.HasMany(x => x.MediaFiles)
             .WithOne()
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasMany(a => a.Conversations)
+        builder.HasMany(x => x.Conversations)
             .WithOne()
             .OnDelete(DeleteBehavior.Cascade);
     }
