@@ -1,9 +1,11 @@
 ﻿using Layla.Domain.Common;
-
+using NetTopologySuite;
+using NetTopologySuite.Geometries;
 namespace Layla.Domain.ValueObjects.ApartmentValueObject;
 
 public sealed class GeoLocation : ValueObject
 {
+    
     private GeoLocation() { }
 
     private GeoLocation(
@@ -15,13 +17,14 @@ public sealed class GeoLocation : ValueObject
         string country,
         Coordinates coordinates)
     {
+        var geometryFactory = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
         Street = street;
         BuildingNumber = buildingNumber;
         ApartmentNumber = apartmentNumber;
         City = city;
         District = district;
         Country = country;
-        Coordinates = coordinates;
+        Coordinates = geometryFactory.CreatePoint( new Coordinate(coordinates.Longitude, coordinates.Latitude));
     }
 
     public string Street { get; private set; } = null!;
@@ -31,25 +34,11 @@ public sealed class GeoLocation : ValueObject
     public string District { get; private set; } = null!;
     public string Country { get; private set; } = null!;
 
-    public Coordinates Coordinates { get; private set; } = null!;
+    public Point Coordinates { get; private set; } = null!;
 
-    public static GeoLocation Create(
-        string street,
-        string buildingNumber,
-        string apartmentNumber,
-        string city,
-        string district,
-        string country,
-        Coordinates coordinates)
+    public static GeoLocation Create(string street,  string buildingNumber,  string apartmentNumber, string city, string district,  string country, Coordinates coordinates)
     {
-        Validate(
-            street,
-            buildingNumber,
-            apartmentNumber,
-            city,
-            district,
-            country);
-
+        Validate(street, buildingNumber, apartmentNumber, city, district, country);
         return new GeoLocation(
             street.Trim(),
             buildingNumber.Trim(),

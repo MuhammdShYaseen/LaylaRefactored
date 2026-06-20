@@ -112,20 +112,16 @@ public sealed class ApartmentConfiguration : IEntityTypeConfiguration<Apartment>
                 .HasMaxLength(100)
                 .IsRequired();
 
-            var geometryFactory =
-    NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
+            geo.Property(x => x.Coordinates)
+                .HasColumnName("Coordinates")
+                .HasColumnType("geography")
+                .IsRequired();
 
-            geo.OwnsOne(x => x.Coordinates, coordinates =>
-            {
-                coordinates.Property(x => x.Latitude)
-                    .HasColumnName("Latitude")
-                    .IsRequired();
-
-                coordinates.Property(x => x.Longitude)
-                    .HasColumnName("Longitude")
-                    .IsRequired();
-            });
+            
         });
+
+        builder.Navigation(x => x.Location)
+            .IsRequired();
 
         // Relationships
 
